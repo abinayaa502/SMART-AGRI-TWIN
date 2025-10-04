@@ -7,73 +7,23 @@ Original file is located at
     https://colab.research.google.com/drive/1MDFEU0vFAPE0tfW_E7MzFVSm2x4tAESu
 """
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
-
-# Load your data files (make sure filenames match exactly)
-icrisat_long = pd.read_csv('icrisat_long_cleaned.csv')  # Crop data
-soil = pd.read_csv('Soil-data-cleaned.csv')             # Soil data
-
-# ----- Crop Data Visualizations -----
-
-crop_to_plot = 'Wheat'  # Change to 'Maize' as needed
-crop_df = icrisat_long[icrisat_long['Crop'] == crop_to_plot]
-
-# 1. Line Chart: Crop Production Over Years
-prod_year = crop_df.groupby('Year')['Production'].sum().reset_index()
-fig1 = px.line(prod_year, x='Year', y='Production', title=f'{crop_to_plot} Production Over Years')
-fig1.show()
-
-# 2. Bar Chart: District-wise Total Production
-dist_prod = crop_df.groupby('District')['Production'].sum().reset_index()
-fig2 = px.bar(dist_prod, x='District', y='Production', title=f'Total {crop_to_plot} Production by District')
-fig2.show()
-
-# 3. Interactive Bar: Crop Comparison by District (Wheat and Maize)
-main_crops = icrisat_long.groupby(['District', 'Crop'])['Production'].sum().reset_index()
-fig3 = px.bar(main_crops, x='District', y='Production', color='Crop', title='Main Crop Production by District')
-fig3.show()
-
-
-# ----- Soil Data Visualizations -----
-
-# 4. Histogram: Soil Nitrogen Distribution
-plt.figure(figsize=(8,5))
-sns.histplot(soil['Nitrogen'], bins=20, kde=True)
-plt.title('Distribution of Soil Nitrogen')
-plt.xlabel('Nitrogen Content')
-plt.ylabel('Frequency')
-plt.tight_layout()
-plt.show()
-
-# 5. Bar Plot: Average Soil pH by District
-avg_ph = soil.groupby('District')['pH'].mean().sort_values()
-avg_ph.plot(kind='bar', figsize=(12,5), color='teal')
-plt.title('Average Soil pH by District')
-plt.xlabel('District')
-plt.ylabel('Average pH')
-plt.tight_layout()
-plt.show()
-
-# 6. Heatmap: Correlations of Soil Features
-plt.figure(figsize=(10,8))
-sns.heatmap(soil.select_dtypes(include='number').corr(), annot=True, cmap='YlGnBu')
-plt.title('Correlation of Soil Features')
-plt.tight_layout()
-plt.show()
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 
-st.set_page_config(page_title="Smart AgriTwin Dashboard", layout="wide")
-st.title("Smart AgriTwin - Crop & Soil Data Dashboard")
+# Set page config with a farm-related icon and page title
+st.set_page_config(
+    page_title="🌾 Smart AgriTwin Dashboard 🌱",
+    page_icon="🌻",
+    layout="wide"
+)
 
-# Load data using caching (for speed)
+# Title with emojis
+st.title("🌾 Smart AgriTwin - Crop & Soil Data Dashboard 🌱")
+
+# Load data using caching for faster reloads
 @st.cache_data
 def load_data():
     crop = pd.read_csv('icrisat_long_cleaned.csv')
@@ -82,51 +32,80 @@ def load_data():
 
 crop, soil = load_data()
 
-# Sidebar for crop selection
+# Sidebar with themed header
+st.sidebar.header("🌱 Filters")
 crop_types = crop['Crop'].unique()
 selected_crop = st.sidebar.selectbox("Select Crop", sorted(crop_types))
 crop_df = crop[crop['Crop'] == selected_crop]
 
+# Use farm-themed color palettes
+green_palette = ["#2E8B57", "#3CB371", "#8FBC8F", "#6B8E23"]
+orange_palette = ["#FFA500", "#FF8C00", "#FF7F50"]
+
 # 1. Line Chart: Crop Production Over Years
-st.subheader(f"{selected_crop} Production Over Years")
+st.subheader(f"🌻 {selected_crop} Production Over Years")
 prod_year = crop_df.groupby('Year')['Production'].sum().reset_index()
-fig1 = px.line(prod_year, x='Year', y='Production', title=f"{selected_crop} Production Over Years")
+fig1 = px.line(
+    prod_year,
+    x='Year',
+    y='Production',
+    title=f"{selected_crop} Production Over Years",
+    color_discrete_sequence=green_palette
+)
 st.plotly_chart(fig1, use_container_width=True)
 
 # 2. Bar Chart: District-wise Total Production
-st.subheader(f"Total {selected_crop} Production by District")
+st.subheader(f"🌿 Total {selected_crop} Production by District")
 dist_prod = crop_df.groupby('District')['Production'].sum().reset_index()
-fig2 = px.bar(dist_prod, x='District', y='Production', title=f"Total {selected_crop} Production by District")
+fig2 = px.bar(
+    dist_prod,
+    x='District',
+    y='Production',
+    title=f"Total {selected_crop} Production by District",
+    color_discrete_sequence=orange_palette
+)
 st.plotly_chart(fig2, use_container_width=True)
 
 # 3. Crop Comparison by District
-st.subheader("Main Crop Production by District")
+st.subheader("🚜 Main Crop Production by District")
 main_crops = crop.groupby(['District', 'Crop'])['Production'].sum().reset_index()
-fig3 = px.bar(main_crops, x='District', y='Production', color='Crop', title='Main Crop Production by District')
+fig3 = px.bar(
+    main_crops,
+    x='District',
+    y='Production',
+    color='Crop',
+    title='Main Crop Production by District',
+    color_discrete_sequence=green_palette + orange_palette
+)
 st.plotly_chart(fig3, use_container_width=True)
 
 # 4. Histogram: Soil Nitrogen Distribution
-st.subheader("Distribution of Soil Nitrogen")
+st.subheader("🌾 Distribution of Soil Nitrogen")
 fig4, ax4 = plt.subplots(figsize=(8,5))
-sns.histplot(soil['Nitrogen'], bins=20, kde=True, ax=ax4)
-ax4.set_title('Distribution of Soil Nitrogen')
-ax4.set_xlabel('Nitrogen Content')
-ax4.set_ylabel('Frequency')
+sns.histplot(soil['Nitrogen'], bins=20, kde=True, color="#6B8E23", ax=ax4)
+ax4.set_title('Distribution of Soil Nitrogen', fontsize=14, color="#2E8B57")
+ax4.set_xlabel('Nitrogen Content', fontsize=12)
+ax4.set_ylabel('Frequency', fontsize=12)
 st.pyplot(fig4)
 
 # 5. Bar Plot: Average Soil pH by District
-st.subheader("Average Soil pH by District")
+st.subheader("🌱 Average Soil pH by District")
 avg_ph = soil.groupby('District')['pH'].mean().sort_values()
 fig5, ax5 = plt.subplots(figsize=(12,5))
-avg_ph.plot(kind='bar', color='teal', ax=ax5)
-ax5.set_title('Average Soil pH by District')
-ax5.set_xlabel('District')
-ax5.set_ylabel('Average pH')
+avg_ph.plot(kind='bar', color="#FFA500", ax=ax5)
+ax5.set_title('Average Soil pH by District', fontsize=14, color="#FF8C00")
+ax5.set_xlabel('District', fontsize=12)
+ax5.set_ylabel('Average pH', fontsize=12)
 st.pyplot(fig5)
 
 # 6. Heatmap: Correlations of Soil Features
-st.subheader("Correlation of Soil Features")
+st.subheader("🌿 Correlation of Soil Features")
 fig6, ax6 = plt.subplots(figsize=(10,8))
-sns.heatmap(soil.select_dtypes(include='number').corr(), annot=True, cmap='YlGnBu', ax=ax6)
-ax6.set_title('Correlation of Soil Features')
+sns.heatmap(
+    soil.select_dtypes(include='number').corr(),
+    annot=True,
+    cmap='YlGn',
+    ax=ax6
+)
+ax6.set_title('Correlation of Soil Features', fontsize=14, color="#2E8B57")
 st.pyplot(fig6)
