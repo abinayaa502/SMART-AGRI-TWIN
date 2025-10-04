@@ -12,7 +12,6 @@ body, .stMarkdown, .stHeader, .stSubheader, .stCaption, .stTextInput > label, .s
 </style>
 """, unsafe_allow_html=True)
 
-
 # ------------------- HOME/LOGIN PAGE -------------------
 def login_page():
     st.markdown("<h1 style='color:#40631e;text-align:center'>🌾 SMART AGRI TWIN</h1>", unsafe_allow_html=True)
@@ -58,21 +57,36 @@ else:
     st.write("---")
     st.markdown("**Use this dashboard to select crops, analyze your district's soil, and access vital agricultural guidance.**")
 
+    # ------------------- DISTRICT SELECTION -------------------
+    districts = sorted(list(set(crop['District']).intersection(set(soil['District']))))
+    selected_district = st.selectbox("Select a District to View Recommendations", districts)
+
     # ------------------- KEY RECOMMENDATION -------------------
     st.header("🌿 Crop Recommendations by District (by Soil Nitrogen)")
     try:
-        merged = pd.merge(crop, soil, on="District")
-        top_crops = merged.groupby(['District','Crop'])['Nitrogen'].mean().reset_index()
-        best = top_crops.sort_values('Nitrogen', ascending=False).groupby('District').first().reset_index()
-        st.table(best[['District','Crop','Nitrogen']].rename(columns={"Crop":"Recommended Crop", "Nitrogen":"Avg. Soil N"}))
-        st.markdown("> _Prioritize crop choice in high-nitrogen districts. Consider interventions for low-nitrogen/low-yield districts._")
+        crop_row = crop[crop['District'] == selected_district]
+        soil_row = soil[soil['District'] == selected_district]
+
+        if not crop_row.empty and not soil_row.empty:
+            merged = pd.merge(crop_row, soil_row, on="District")
+
+            # Select the crop with maximum Nitrogen value as recommended (example strategy)
+            best_crop_row = merged.loc[merged['Nitrogen'].idxmax()]
+            st.table(pd.DataFrame({
+                'District': [selected_district],
+                'Recommended Crop': [best_crop_row['Crop']],
+                'Avg. Soil N': [round(best_crop_row['Nitrogen'], 2)]
+            }))
+            st.markdown("> _Prioritize crop choice in high-nitrogen districts. Consider interventions for low-nitrogen/low-yield districts._")
+        else:
+            st.warning("No data available for this district!")
     except Exception as e:
-        st.error(f"Could not merge datasets: {e}")
+        st.error(f"Error fetching recommendation: {e}")
 
     # ------------------- VISUALIZATION TABS -------------------
     tabs = st.tabs([
-        "Wheat by District", "Wheat Over Years", 
-        "Main Crop by District", "Average Soil pH", 
+        "Wheat by District", "Wheat Over Years",
+        "Main Crop by District", "Average Soil pH",
         "Soil Nitrogen Distribution", "Soil Correlation"
     ])
 
@@ -130,4 +144,3 @@ else:
     st.markdown("- Use soil maps to target crop choices for each location.")
     st.markdown("- Support ongoing research and technology deployment for sustainable gains.")
     st.image("https://cdn.pixabay.com/photo/2015/09/09/19/34/agriculture-933167_1280.jpg", caption="Indian Farmers — The Heart of Our Nation", use_column_width=True)
-
