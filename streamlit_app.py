@@ -59,7 +59,7 @@ else:
 
     # ------------------- DISTRICT SELECTION -------------------
     # Hardcoded district list from Soil-data.csv
-districts = [
+district = [
     "Yadgir",
     "Virudhunagar",
     "Villupuram",
@@ -73,7 +73,7 @@ districts = [
     "Tuticorin",
     "Tumakuru",
     "Tiruvannamalai",
-    "Tirupur",
+    "Tiruppur",
     "Tirupathur",
     "Tirunelveli"
 ]
