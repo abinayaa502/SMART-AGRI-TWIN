@@ -73,7 +73,7 @@ districts = [
     "Tuticorin",
     "Tumakuru",
     "Tiruvannamalai",
-    "Tiruppur",
+    "Tirupur",
     "Tirupathur",
     "Tirunelveli"
 ]
