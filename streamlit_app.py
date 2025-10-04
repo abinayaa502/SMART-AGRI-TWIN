@@ -58,8 +58,27 @@ else:
     st.markdown("**Use this dashboard to select crops, analyze your district's soil, and access vital agricultural guidance.**")
 
     # ------------------- DISTRICT SELECTION -------------------
-    districts = sorted(list(set(crop['District']).intersection(set(soil['District']))))
-    selected_district = st.selectbox("Select a District to View Recommendations", districts)
+    # Hardcoded district list from Soil-data.csv
+districts = [
+    "Yadgir",
+    "Virudhunagar",
+    "Villupuram",
+    "Vijayapura",
+    "Vijayanagar",
+    "Vellore",
+    "Valsad",
+    "Vadodara",
+    "Uttara Kannada",
+    "Udupi",
+    "Tuticorin",
+    "Tumakuru",
+    "Tiruvannamalai",
+    "Tiruppur",
+    "Tirupathur",
+    "Tirunelveli"
+]
+
+selected_district = st.selectbox("Select a District to View Recommendations", districts)
 
     # ------------------- KEY RECOMMENDATION -------------------
     st.header("🌿 Crop Recommendations by District (by Soil Nitrogen)")
