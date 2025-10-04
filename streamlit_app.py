@@ -6,10 +6,12 @@ st.set_page_config(page_title="🌾 Smart AgriTwin Dashboard", page_icon="🌱",
 
 # LIGHT background for the whole app
 st.markdown("""
-    <style>
-    .stApp { background-color: #f8f8ea; }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+.stApp { background-color: #f7f7eb; color: #151716; }
+body, .stMarkdown, .stHeader, .stSubheader, .stCaption, .stTextInput > label, .stSelectbox > label, .stTextArea > label, .stTabs { color: #151716 !important;}
+</style>
+""", unsafe_allow_html=True)
+
 
 # ------------------- HOME/LOGIN PAGE -------------------
 def login_page():
