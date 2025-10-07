@@ -37,15 +37,11 @@ st.write("---")
 
 @st.cache_data
 def load_data():
-    # Main data for soil and crop recommendations
     crop = pd.read_csv('icrisat_long_cleaned.csv')
     soil = pd.read_csv('Soil-data-cleaned.csv')
-    # Example timeseries data for field-level insights
     try:
-        # Expect columns: date, location, soil_moisture, yield_t_ha (plus lat/lon)
         timeseries = pd.read_csv('fields_timeseries.csv', parse_dates=['date'])
     except:
-        # Generate simple dummy data if file not present
         data = {
             "date": pd.date_range(start='2020-04-02', end='2020-10-25').repeat(3),
             "location": ["Field_A"]*207 + ["Field_B"]*207 + ["Field_C"]*207,
@@ -56,48 +52,52 @@ def load_data():
     return crop, soil, timeseries
 
 crop, soil, timeseries = load_data()
+
 for df in (crop, soil):
     df.columns = df.columns.str.strip()
     if "District" in df.columns:
         df["District"] = df["District"].astype(str).str.strip().str.title()
 
-# Example GPS for three fields; expand as needed!
 field_coords = {
     'Field_A': {'lat': 11.01, 'lon': 77.03},
     'Field_B': {'lat': 11.02, 'lon': 77.04},
     'Field_C': {'lat': 11.03, 'lon': 77.05},
 }
+
 if 'lat' not in timeseries.columns or 'lon' not in timeseries.columns:
     timeseries['lat'] = timeseries['location'].map(lambda x: field_coords.get(x, {}).get('lat', None))
     timeseries['lon'] = timeseries['location'].map(lambda x: field_coords.get(x, {}).get('lon', None))
 
-# --- SLICERS (top of app) ---
+# Show number of fields and list them
+field_list = timeseries['location'].unique()
+num_fields = len(field_list)
+st.info(f"Number of unique fields in dataset: {num_fields}  — Fields: {', '.join(field_list)}")
+
+# Slicers for date and fields
 col1, col2 = st.columns(2)
 with col1:
-    date_range = st.date_input("Date Range", [
-        timeseries['date'].min().date(), timeseries['date'].max().date()
-    ])
+    date_range = st.date_input("Date Range", [timeseries['date'].min().date(), timeseries['date'].max().date()])
 with col2:
-    locations = st.multiselect("Fields", timeseries['location'].unique(), default=list(timeseries['location'].unique()))
+    locations = st.multiselect("Fields", field_list, default=list(field_list))
 
-mask = (
+filtered = timeseries[
     (timeseries['date'] >= pd.to_datetime(date_range[0])) &
     (timeseries['date'] <= pd.to_datetime(date_range[1])) &
     (timeseries['location'].isin(locations))
-)
-filtered = timeseries[mask]
+]
 
-# --- TOP KPIs ---
+# KPIs in one row
 k1, k2, k3 = st.columns(3)
-sm_val = filtered['soil_moisture'].mean() if not filtered.empty else 0
-yield_val = filtered['yield_t_ha'].mean() if not filtered.empty else 0
-irrig_fields = filtered[filtered['soil_moisture'] < 20]['location'].nunique() if not filtered.empty else 0
-k1.metric("Avg Soil Moisture (7-day)", f"{sm_val:.2f}")
-k2.metric("Avg Yield (t/ha)", f"{yield_val:.2f}")
-k3.metric("Fields needing irrigation (today)", irrig_fields)
+avg_sm = filtered['soil_moisture'].mean() if not filtered.empty else 0
+avg_yield = filtered['yield_t_ha'].mean() if not filtered.empty else 0
+fields_need_irrig = filtered[filtered['soil_moisture'] < 20]['location'].nunique() if not filtered.empty else 0
+k1.metric("Avg Soil Moisture (7-day)", f"{avg_sm:.2f}")
+k2.metric("Avg Yield (t/ha)", f"{avg_yield:.2f}")
+k3.metric("Fields needing irrigation (today)", fields_need_irrig)
+
 st.write("---")
 
-# --- TIMESERIES SOIL MOISTURE ---
+# Timeseries soil moisture plot
 st.subheader("Daily Soil Moisture by Field")
 if not filtered.empty:
     fig = px.line(filtered, x='date', y='soil_moisture', color='location', labels={'soil_moisture':'Soil Moisture'})
@@ -105,28 +105,29 @@ if not filtered.empty:
 else:
     st.info("No data for chosen filter.")
 
-# --- MAP ---
-st.subheader("Average of soil_moisture by Field (Map)")
+# Geographic map of soil moisture
+st.subheader("Average Soil Moisture by Field")
 if not filtered.empty and filtered[['lat','lon']].notna().any().any():
-    map_df = filtered.groupby('location').agg({'lat':'first','lon':'first','soil_moisture':'mean'}).reset_index()
-    fig_map = px.scatter_mapbox(
-        map_df, lat="lat", lon="lon", color="location", size="soil_moisture",
-        hover_name="location", zoom=7, height=350, mapbox_style="open-street-map"
+    map_data = filtered.groupby('location').agg({'lat':'first','lon':'first','soil_moisture':'mean'}).reset_index()
+    map_fig = px.scatter_mapbox(
+        map_data, lat='lat', lon='lon', color='location', size='soil_moisture',
+        hover_name='location', zoom=7, height=350, mapbox_style='open-street-map'
     )
-    st.plotly_chart(fig_map, use_container_width=True)
+    st.plotly_chart(map_fig, use_container_width=True)
 else:
     st.info("No location map data for current filters.")
 
-# --- YIELD BAR CHART ---
-st.subheader("Average yield by location (t/ha)")
+# Average yield by location bar chart
+st.subheader("Average Yield by Location (t/ha)")
 if not filtered.empty:
-    by_loc = filtered.groupby('location')['yield_t_ha'].mean().reset_index()
-    fig_bar = px.bar(by_loc, y='location', x='yield_t_ha', orientation='h')
-    st.plotly_chart(fig_bar, use_container_width=True)
+    yield_data = filtered.groupby('location')['yield_t_ha'].mean().reset_index()
+    yield_fig = px.bar(yield_data, y='location', x='yield_t_ha', orientation='h')
+    st.plotly_chart(yield_fig, use_container_width=True)
 else:
     st.info("No yield data for current filter.")
 
-# --- DISTRICT-LEVEL TABS (your original dashboard, unchanged) ---
+# Original district level tabs below
+
 tabs = st.tabs([
     "Wheat by District", "Wheat Over Years",
     "Main Crop by District", "Average Soil pH",
@@ -169,7 +170,8 @@ with tabs[5]:
     fig = px.imshow(num_cols.corr(), color_continuous_scale='YlOrBr')
     st.plotly_chart(fig, use_container_width=True)
 
-# --- RECOMMENDATION TABLE (unchanged) ---
+# Crop recommendations table
+
 st.header("🌿 Crop Recommendations by District")
 try:
     merged = pd.merge(crop, soil, on="District")
@@ -180,7 +182,7 @@ try:
 except Exception as e:
     st.error(f"Error merging: {e}")
 
-# --- RECOMMENDATIONS SECTION (unchanged) ---
+# Recommendations section
 st.header("Recommendations & Best Practices")
 st.write("- Learn from high-yield districts.")
 st.write("- Apply soil amendments and fertilizer as needed.")
